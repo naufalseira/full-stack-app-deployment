@@ -1,0 +1,111 @@
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: handy-be
+  namespace: handy
+  labels:
+    app: handy-be
+spec:
+  selector:
+    matchLabels:
+      app: handy-be
+      tier: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: handy-be
+        tier: backend
+    spec:
+      containers:
+        - name: handy-be
+          image: 0xsera/handy-be:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh"]
+          args: ["-c", "npm run migrate:deploy && npm run start:prod"]
+          ports:
+            - protocol: TCP
+              containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: postgresql://postgres:postgres@postgres-db:5432/handy
+            - name: JWT_SECRET_KEY
+              value: H@ndyP0pul4rN3tw0rkT3chn0l0gy2024S3cr3tK3y!
+          resources:
+            requests:
+              memory: 250Mi
+              cpu: 250m
+            limits:
+              memory: 500Mi
+              cpu: 500m
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8000
+          #   successThreshold: 1
+          #   failureThreshold: 3
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 30
+          #   timeoutSeconds: 1
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8000
+          #   successThreshold: 1
+          #   failureThreshold: 3
+          #   initialDelaySeconds: 10
+          #   periodSeconds: 30
+          #   timeoutSeconds: 1
+
+---
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: handy-be
+  labels:
+    app: handy-be
+spec:
+  selector:
+    app: handy-be
+    tier: backend
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      # nodePort: 30003
+
+---
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: handy-be
+  labels:
+    app: handy-be
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: handy-be
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70

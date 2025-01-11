@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-db
+  namespace: handy
+  labels:
+    app: postgres-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-db
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+        tier: database
+    spec:
+      containers:
+        - name: postgres-db
+          image: postgres:latest
+          ports:
+            - protocol: TCP
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: handy
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: "postgres"
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: 750Mi
+              cpu: 750m
+            limits:
+              memory: 1Gi
+              cpu: 1000m
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: pgdata # Ensure this matches the PVC name
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgdata
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-db
+  labels:
+    app: postgres-db
+spec:
+  selector:
+    app: postgres-db
+    tier: database
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
