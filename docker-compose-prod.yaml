@@ -1,0 +1,91 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      target: production
+    # image: 0xsera/handy-fe
+    container_name: handy-fe
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_BACKEND_WS_API_URL=http://localhost:8000
+      - VITE_AUTHORIZATION_SESSION=HANDY_KEY
+      - VITE_BACKEND_API_URL=http://localhost:8000
+    # Remove frontend_source volume as it's not needed in production
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      target: production
+    # image: 0xsera/handy-be
+    container_name: handy-be
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/handy
+      - JWT_SECRET_KEY=H@ndyP0pul4rN3tw0rkT3chn0l0gy2024S3cr3tK3y!
+    # Remove backend_source volume as it's not needed in production
+    networks:
+      - app-network
+      - db-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm run migrate:dev && npm run start:prod"
+    restart: unless-stopped
+
+  db:
+    image: postgres:latest
+    container_name: postgres-prod
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=handy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-prod
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - db-network
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  app-network:
+    driver: bridge
+  db-network:
+    driver: bridge
