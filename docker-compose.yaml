@@ -2,17 +2,17 @@ services:
   frontend:
     build:
       context: ./frontend
-      target: production
-    image: 0xsera/handy-fe
-    container_name: handy-fe
+      target: development
+    container_name: handy-fe-dev
     ports:
-      - "80:80"
+      - "5173:5173"
     environment:
       - VITE_BACKEND_WS_API_URL=http://localhost:8000
       - VITE_AUTHORIZATION_SESSION=HANDY_KEY
       - VITE_BACKEND_API_URL=http://localhost:8000
     volumes:
-      - frontend_source:/usr/share/nginx/html
+      - ./frontend:/app
+      - /app/node_modules
     networks:
       - app-network
     depends_on:
@@ -22,28 +22,29 @@ services:
   backend:
     build:
       context: ./backend
-      target: production
-    image: 0xsera/handy-be
-    container_name: handy-be
+      target: development
+    container_name: handy-be-dev
     ports:
       - "8000:8000"
     environment:
+      - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/handy
-      - JWT_SECRET_KEY=H@ndyP0pul4rN3tw0rkT3chn0l0gy2024S3cr3tK3y!
+      - JWT_SECRET_KEY=development_secret_key
     volumes:
-      - backend_source:/app
+      - ./backend:/app
+      - /app/node_modules
     networks:
       - app-network
       - db-network
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm run migrate:dev && npm run start:prod"
+    command: sh -c "npm run migrate:dev && npm run start:dev"
     restart: unless-stopped
 
   db:
     image: postgres:latest
-    container_name: postgres-prod
+    container_name: postgres-dev
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -51,7 +52,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     networks:
       - db-network
     healthcheck:
@@ -63,7 +64,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: pgadmin-prod
+    container_name: pgadmin-dev
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
@@ -71,7 +72,7 @@ services:
     ports:
       - "5050:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_data_dev:/var/lib/pgadmin
     networks:
       - db-network
     depends_on:
@@ -79,10 +80,8 @@ services:
     restart: unless-stopped
 
 volumes:
-  frontend_source:
-  backend_source:
-  postgres_data:
-  pgadmin_data:
+  postgres_data_dev:
+  pgadmin_data_dev:
 
 networks:
   app-network:
