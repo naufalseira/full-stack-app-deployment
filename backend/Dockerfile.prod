@@ -1,0 +1,53 @@
+# Base stage for shared dependencies
+FROM node:20-alpine AS base
+WORKDIR /app
+# Add necessary packages
+RUN apk add --no-cache openssl libc6-compat
+
+# Dependencies stage
+FROM base AS dependencies
+COPY package*.json ./
+COPY prisma ./prisma/
+# Install production dependencies
+RUN npm ci --omit=dev
+RUN cp -R node_modules prod_modules
+# Install all dependencies for development/build
+RUN npm ci
+RUN npx prisma generate
+
+# Build stage
+FROM base AS build
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# Development stage
+FROM base AS development
+WORKDIR /app
+# Copy necessary files
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=dependencies /app/node_modules/.prisma ./node_modules/.prisma
+COPY package*.json ./
+COPY prisma ./prisma/
+COPY . .
+# Development specific configurations
+EXPOSE 8000
+ENV NODE_ENV=development
+CMD ["npm", "run", "start:dev"]
+
+# Production stage
+FROM base AS production
+WORKDIR /app
+# Copy only production dependencies and build files
+COPY --from=dependencies /app/prod_modules ./node_modules
+COPY --from=dependencies /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/uploads ./uploads
+COPY package*.json ./
+COPY prisma ./prisma/
+# Generate Prisma Client
+RUN npx prisma generate
+# Production specific configurations
+EXPOSE 8000
+ENV NODE_ENV=production
+CMD ["npm", "run", "start:prod"]
