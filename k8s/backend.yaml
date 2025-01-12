@@ -49,7 +49,7 @@ spec:
           #     port: 8000
           #   successThreshold: 1
           #   failureThreshold: 3
-          #   initialDelaySeconds: 5
+          #   initialDelaySeconds: 30
           #   periodSeconds: 30
           #   timeoutSeconds: 1
           # livenessProbe:
@@ -58,7 +58,7 @@ spec:
           #     port: 8000
           #   successThreshold: 1
           #   failureThreshold: 3
-          #   initialDelaySeconds: 10
+          #   initialDelaySeconds: 45
           #   periodSeconds: 30
           #   timeoutSeconds: 1
 
