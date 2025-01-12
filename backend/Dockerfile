@@ -1,4 +1,4 @@
-# Base stage untuk shared dependencies
+# Base stage for shared dependencies
 FROM node:22-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
@@ -7,8 +7,10 @@ RUN apk add --no-cache openssl libc6-compat
 FROM base AS dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
+# Install production dependencies
 RUN npm ci --omit=dev
 RUN cp -R node_modules prod_modules
+# Install all dependencies for development/build
 RUN npm ci
 RUN npx prisma generate
 
@@ -35,7 +37,7 @@ CMD ["npm", "run", "start:dev"]
 # Production stage
 FROM base AS production
 WORKDIR /app
-# Copy only production dependencies and built files
+# Copy only production dependencies and build files
 COPY --from=dependencies /app/prod_modules ./node_modules
 COPY --from=dependencies /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/dist ./dist
