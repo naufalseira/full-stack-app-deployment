@@ -1,24 +1,25 @@
+# deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-db
+  name: handy-db 
   namespace: handy
   labels:
-    app: postgres-db
+    app: handy-db 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-db
+      app: handy-db 
       tier: database
   template:
     metadata:
       labels:
-        app: postgres-db
+        app: handy-db 
         tier: database
     spec:
       containers:
-        - name: postgres-db
+        - name: handy-db 
           image: postgres:latest
           ports:
             - protocol: TCP
@@ -30,6 +31,8 @@ spec:
               value: postgres
             - name: POSTGRES_PASSWORD
               value: "postgres"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
@@ -43,30 +46,33 @@ spec:
       volumes:
         - name: pgdata
           persistentVolumeClaim:
-            claimName: pgdata # Ensure this matches the PVC name
+            claimName: azure-managed-disk
 
 ---
+# persistent-volume-claim.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pgdata
+  name: azure-managed-disk
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: managed-premium
   resources:
     requests:
       storage: 4Gi
 
 ---
+# service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-db
+  name: handy-db 
   labels:
-    app: postgres-db
+    app: handy-db 
 spec:
   selector:
-    app: postgres-db
+    app: handy-db 
     tier: database
   ports:
     - protocol: TCP
