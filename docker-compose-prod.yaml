@@ -8,10 +8,12 @@ services:
     container_name: handy-fe
     ports:
       - "80:80"
+    secrets:
+      - authorization-session
     environment:
       - NODE_ENV=production
       - VITE_BACKEND_WS_API_URL=http://localhost:8000
-      - VITE_AUTHORIZATION_SESSION=HANDY_KEY
+      - VITE_AUTHORIZATION_SESSION=/run/secrets/authorization-session
       - VITE_BACKEND_API_URL=http://localhost:8000
     # Remove frontend_source volume as it's not needed in production
     networks:
@@ -29,10 +31,12 @@ services:
     container_name: handy-be
     ports:
       - "8000:8000"
+    secrets:
+      - jwt-secret-key
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/handy
-      - JWT_SECRET_KEY=H@ndyP0pul4rN3tw0rkT3chn0l0gy2024S3cr3tK3y!
+      - JWT_SECRET_KEY=/run/secrets/jwt-secret-key
     # Remove backend_source volume as it's not needed in production
     networks:
       - app-network
@@ -46,9 +50,11 @@ services:
   db:
     image: postgres:latest
     container_name: postgres-prod
+    secrets:
+      - db-password
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
       - POSTGRES_DB=handy
     ports:
       - "5432:5432"
@@ -83,6 +89,14 @@ services:
 volumes:
   postgres_data:
   pgadmin_data:
+
+secrets:
+  db-password:
+    file: ./secrets/db-password.txt
+  jwt-secret-key:
+    file: ./secrets/jwt-secret-key.txt
+  authorization-session:
+    file: ./secrets/authorization-session.txt
 
 networks:
   app-network:
