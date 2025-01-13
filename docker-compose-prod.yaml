@@ -4,7 +4,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       target: production
-    # image: 0xsera/handy-fe
+    image: 0xsera/full-stack-app-deployment-frontend
     container_name: handy-fe
     ports:
       - "80:80"
@@ -27,7 +27,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
       target: production
-    # image: 0xsera/handy-be
+    image: 0xsera/full-stack-app-deployment-backend
     container_name: handy-be
     ports:
       - "8000:8000"
